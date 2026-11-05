@@ -3391,18 +3391,17 @@ async function gzFinishExpiredG(i,p){
   const snapshot={...p};
   p._ending=true;
   try{
-    if(!(await gzConfirmFinish16(snapshot,p)))return;
     const result=await fbRoot.transaction(root=>{
       root=root||{};
       const live=rootReadActive(root,snapshot,i)||{};
-      if(!live.actif||(sid&&live.sessionId!==sid)||!live.poweredOffAt||live.powerCutSessionId!==sid)return undefined;
+      if(!live.actif||(sid&&live.sessionId!==sid))return undefined;
       const now=Date.now();
       if(live.paused){if(Number(live.pauseRemainingSec||0)>0)return undefined;}
       else if(!Number(live.finTs)||Number(live.finTs)>now)return undefined;
       root.closed_sessions=root.closed_sessions||{};
       const alreadyClosed=!!(sid&&root.closed_sessions[sid]);
       const cleared=blankRemoteActive(live);
-      cleared.cleanup=true;cleared.cleanupUntil=now+20000;cleared.sessionId=sid;
+      cleared.cleanup=false;cleared.cleanupUntil=0;cleared.sessionId='';cleared.expiredSessionId=sid;cleared.powerUnverified=true;
       rootWriteActive(root,snapshot,i,cleared);
       const ss=freshSessionSnapshotFromRoot(root);
       if(!alreadyClosed&&!live.bonusOnly)ss.count=Math.max(0,Number(ss.count)||0)+1;
@@ -3414,16 +3413,11 @@ async function gzFinishExpiredG(i,p){
     });
     if(!result||!result.committed){if(fbForcePoll)await fbForcePoll();return;}
     syncFromTransactionResult(result);
-    // OFF déjà confirmé par le serveur : aucune seconde coupure tardive.
+    // Poste libéré dans Firebase ; extinction physique non affirmée sans retour de la prise.
     renderPostes();updateStats();
     gzSpeak('Temps terminé pour '+speechPosteName(snapshot.num)+'.');
-    gzTextVoiceNotify('GameZone — Fin de session',speechPosteName(snapshot.num)+' : temps terminé, télévision éteinte.','');
+    gzTextVoiceNotify('GameZone — Fin de session',speechPosteName(snapshot.num)+' : temps terminé, poste libre. État électrique à vérifier.','');
     addJournal('r',snapshot.num+' — Temps écoulé',(snapshot.client||'Client')+' · fin automatique',money(snapshot.montantSession)+' F','',{poste:snapshot.num,client:snapshot.client||'',sessionId:sid,typeActivite:'terminee_auto',tempsRestantSec:0,montant:money(snapshot.montantSession)});
-    try{await fbRoot.transaction(root=>{
-      root=root||{};const a=rootReadActive(root,snapshot,i)||{};
-      if(a.actif||!a.cleanup||a.sessionId!==sid)return undefined;
-      rootWriteActive(root,snapshot,i,{...a,cleanup:false,cleanupUntil:0,sessionId:'',updatedAt:Date.now()});return root;
-    });}catch(e){console.warn('Nettoyage fin de séance:',e);}
     if(fbForcePoll)await fbForcePoll();
   }catch(e){console.warn('Fin automatique poste:',e);showToast('⚠️ '+snapshot.num+' : fin Firebase à synchroniser');}
   finally{p._ending=false;}
@@ -4094,4 +4088,5 @@ window.GymProofFree=(function(){
 
 </body>
 </html>
+
 

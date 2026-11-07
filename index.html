@@ -2206,9 +2206,6 @@ async function confirmerSession(){
   let idx=-1,p=null,sid='',reserved=false,powered=false;
   try{
     if(!fbRoot)throw new Error('Connexion Firebase indisponible');
-    if(postes[modalPosteIdx])await YOUSSEFRelay.ready(postes[modalPosteIdx]);
-    const latest=await fbRoot.once('value');
-    syncFromTransactionResult({snapshot:latest});
     const nom=document.getElementById('ms-nom').value.trim();
     if(!nom)return startStatus('⚠️ Entrez le nom du client');
     if(!selDuree)return startStatus('⚠️ Choisissez une durée');
@@ -2223,25 +2220,10 @@ async function confirmerSession(){
     sid=String(p.num)+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
     let autoBonusStartG=0;
     const payLbl=((PAYS.find(x=>x.id===payKey)||{}).lbl)||payKey;
-    // ÉTAPE 1 : réservation temporaire, compteur arrêté et aucune recette ajoutée.
-    const reserve=await fbRoot.transaction(root=>{
-      root=root||{};const r=rootReadActive(root,p,idx)||{};
-      if(gzSharedPlugOccupant(root,p,idx))return undefined;
-      if(Number(r.pausePendingUntil)>Date.now()||r.actif||(r.starting&&Date.now()<Number(r.startingUntil||0))||(r.cleanup&&Date.now()<Number(r.cleanupUntil||0)))return undefined;
-      rootWriteActive(root,p,idx,{actif:false,starting:true,startingUntil:Date.now()+45000,
-        client:nom,sessionId:sid,finTs:0,paused:false,montantSession:0,updatedAt:Date.now()});
-      return root;
-    });
-    if(!reserve||!reserve.committed){syncFromTransactionResult(reserve);closeModal('mo-start');return startStatus('⚠️ Séance déjà présente sur Firebase : état actualisé. Reprendre ou terminer la séance existante.');}
-    reserved=true;
-    showToast('⏳ Vérification allumage '+p.num+' ...');
-    // ÉTAPE 2 : la prise doit être réellement ON, sinon on ne démarre pas le compteur.
-    powered=await YOUSSEFRelay.ready(p);
-    if(!powered)throw new Error('Prise non allumée ou statut Tuya non confirmé : temps non activé'+gzTuyaErrorText());
-    // ÉTAPE 3 : compteur et recette une seule fois, seulement après confirmation ON.
+    showToast('⏳ Activation en cours — confirmation de la prise…');
     const tx=await fbRoot.transaction(root=>{
       root=root||{};const r=rootReadActive(root,p,idx)||{};
-      if(!r.starting||r.sessionId!==sid||r.actif||gzSharedPlugOccupant(root,p,idx))return undefined;
+      if(Number(r.pausePendingUntil)>Date.now()||r.actif||(r.starting&&Date.now()<Number(r.startingUntil||0))||(r.cleanup&&Date.now()<Number(r.cleanupUntil||0))||gzSharedPlugOccupant(root,p,idx))return undefined;
       const now=Date.now();
       const active={actif:true,starting:false,startingUntil:0,client:nom,finTs:now+duree*60000,
         tempsTotal:duree*60,dureeMin:duree,paused:false,pauseRemainingSec:0,montantSession:prix,
@@ -3927,8 +3909,10 @@ const initAutoY=initApp;initApp=function(){DB._cache=YOUSSEFRelay.applyAuto(DB._
 </script><script src="./actions-v03.js?v=youssef-boutons-1.6"></script><script>const revisionRefreshY=refreshFromRemote;refreshFromRemote=function(){DB._cache=YOUSSEFRelay.acceptSnapshot(DB._cache);return revisionRefreshY();};</script><script src="pending-pause.js"></script>
 <script src="./youssef-v12-ui.js?v=youssef-sync-1.8"></script>
 <script src="./youssef-feedback.js?v=20261106-audio1?v=2.0"></script>
+<script src="./click-feedback.js?v=20261107-1"></script>
 </body>
 </html>
+
 
 
 

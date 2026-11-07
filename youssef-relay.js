@@ -33,6 +33,7 @@ async function command(p,action,seconds=0,operationId){
   pending.set(n,c);
   if(before.result?.id===c.id){if(!before.result.ok)throw Error(before.result.message||'Commande refusée');return before;}
   if(action==='start'&&(Number(before.nativeSeconds)>0||(before.mode==='actif'&&Number(before.remaining)>0))){const error=Error('Minuteur déjà présent sur cette prise : utilise +Temps ou vérifie la séance existante avant de démarrer. Aucune nouvelle activation envoyée.');error.notSent=true;throw error;}
+  if(action==='start'&&['pause','coupure'].includes(before.mode)&&Number(before.remaining)>0){const error=Error('Ancien temps conservé dans le relais : '+Math.ceil(Number(before.remaining)/60)+' min. Le Patron doit libérer cet ancien temps depuis la carte du poste avant une nouvelle séance.');error.notSent=true;throw error;}
   const old=waiting.data;if(old?.expiresAt>now()&&before?.result?.id!==old.id)throw Error('Une autre commande attend confirmation.');
   await request('pilotage_v1/commands/'+n,'PUT',c);
   for(let i=0;i<100;i++){
@@ -137,6 +138,7 @@ function dayKey(d=new Date()){return new Date(d.getTime()-8*60*60*1000).toISOStr
 function todayRevenue(room,d=new Date()){return Math.max(0,Number(room.daily?.[dayKey(d)]?.recettes)||0);}
 w.YOUSSEFRelay={dayStart,nextEight,managerSnapshot,restRoom,saveTime,restoreTime,validBanks,syncPhysicalRoot,leafPatch,entries,displayName,physicalSummary,renderPhysical,refreshPhysical,install,request,acceptSnapshot,isPatronEvent,dayKey,todayRevenue,currentUid:uid,applyPause,applyAuto,importTariffs,ready,command,plan,transaction,roomRef,child,initialize,safeOff,poste,remaining,owner:OWNER,room:ROOM};
 })(window);
+
 
 
 

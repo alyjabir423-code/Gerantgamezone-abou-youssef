@@ -424,7 +424,7 @@ button:focus-visible,.ni:focus-visible{outline:2px solid var(--gz-jaune);outline
 #gz-notify-btn{border-color:#a67d3e!important;background:#3e311d!important;color:#fde047!important}
 
 </style>
-<script src="./youssef-relay.js?v=youssef-feedback-2.0"></script></head>
+<script src="./youssef-relay.js?v=2.8-sync-annulation"></script></head>
 <body>
 
 <div id="fb-loading" style="position:fixed;inset:0;background:#0d0d1a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:900;gap:10px">
@@ -3898,7 +3898,7 @@ window.GymProofFree=(function(){
 
 <script>YOUSSEFRelay.install({uid:()=>window.gzYOUSSEFUid,token:force=>force?refreshFirebaseIdToken():ensureFirebaseToken()});gzStorageSet('youssef_room_key','YOUSSEF');
 
- document.title='GameZone Abou Youssef — Gérant';const y=document.getElementById('gz-build-version');if(y)y.textContent='YOUSSEF · 7 prises · Relais Firebase 2.0';</script><script>
+ document.title='GameZone Abou Youssef — Gérant';const y=document.getElementById('gz-build-version');if(y)y.textContent='YOUSSEF · 7 prises · Relais Firebase 2.8';</script><script>
 // Les contrôles physiques précèdent la validation de la vente dans transaction().
 allumerPrise=async function(p){try{return await YOUSSEFRelay.ready(p);}catch(e){gzTuyaError=e.message;return false;}};
 eteindrePrise=async function(p){try{return await YOUSSEFRelay.safeOff(p);}catch(e){gzTuyaError=e.message;return false;}};
@@ -3912,6 +3912,7 @@ const initAutoY=initApp;initApp=function(){DB._cache=YOUSSEFRelay.applyAuto(DB._
 <script src="./click-feedback.js?v=20261107-1"></script>
 </body>
 </html>
+
 
 
 

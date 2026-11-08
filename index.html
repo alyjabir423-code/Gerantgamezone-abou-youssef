@@ -424,7 +424,7 @@ button:focus-visible,.ni:focus-visible{outline:2px solid var(--gz-jaune);outline
 #gz-notify-btn{border-color:#a67d3e!important;background:#3e311d!important;color:#fde047!important}
 
 </style>
-<script src="./youssef-relay.js?v=2.8-sync-annulation"></script></head>
+<script src="./youssef-relay.js?v=20261108-hms-banks"></script></head>
 <body>
 
 <div id="fb-loading" style="position:fixed;inset:0;background:#0d0d1a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:900;gap:10px">
@@ -1878,8 +1878,7 @@ function renderPostes(){
     if(!p.actif) libres++;
     const tempsRest=remainingSec(p);
     const pct=p.actif&&p.tempsTotal>0?(tempsRest/p.tempsTotal)*100:0;
-    const mm=Math.floor(tempsRest/60), ss=tempsRest%60;
-    const ts=`${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+    const ts=YOUSSEFRelay.formatSeconds(tempsRest);
     const urg=p.actif&&tempsRest<=300, mid=p.actif&&tempsRest>300&&tempsRest<=600;
     const expired=p.actif&&tempsRest===0&&((!p.paused&&Number(p.finTs)>0)||(p.paused&&Number(p.pauseRemainingSec)<=0));
     const tcls=!p.actif?'t-free':p.paused?'t-mid':urg?'t-low':mid?'t-mid':'t-ok';
@@ -3907,11 +3906,12 @@ eteindrePrise=async function(p){try{return await YOUSSEFRelay.safeOff(p);}catch(
 const rootReadAutoY=rootReadActive;rootReadActive=function(root,p,i){const s=rootReadAutoY(root,p,i);return YOUSSEFRelay.applyPause(s,root?.auto_pauses?.[remotePostKey(p?.num)]);};
 const initAutoY=initApp;initApp=function(){DB._cache=YOUSSEFRelay.applyAuto(DB._cache);return initAutoY();};const refreshAutoY=refreshFromRemote;refreshFromRemote=function(){DB._cache=YOUSSEFRelay.applyAuto(DB._cache);return refreshAutoY();};
 </script><script src="./actions-v03.js?v=youssef-boutons-1.6"></script><script>const revisionRefreshY=refreshFromRemote;refreshFromRemote=function(){DB._cache=YOUSSEFRelay.acceptSnapshot(DB._cache);return revisionRefreshY();};</script><script src="pending-pause.js"></script>
-<script src="./youssef-v12-ui.js?v=youssef-sync-1.8"></script>
+<script src="./youssef-v12-ui.js?v=20261108-hms-banks"></script>
 <script src="./youssef-feedback.js?v=20261106-audio1?v=2.0"></script>
 <script src="./click-feedback.js?v=20261107-1"></script>
 </body>
 </html>
+
 
 
 

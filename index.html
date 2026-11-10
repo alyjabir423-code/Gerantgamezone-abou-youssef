@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script src="./firebase-quota-sync.js?v=quota-20261110-1"></script>
 <script>
 const GZ_STORAGE_PREFIX='gamezone:abou-youssef:gerant:';
 function gzScopedStorage(raw){return {getItem:k=>raw.getItem(GZ_STORAGE_PREFIX+k),setItem:(k,v)=>raw.setItem(GZ_STORAGE_PREFIX+k,String(v)),removeItem:k=>raw.removeItem(GZ_STORAGE_PREFIX+k),clear:()=>{for(const k of Object.keys(raw))if(k.startsWith(GZ_STORAGE_PREFIX))raw.removeItem(k);}};}
@@ -424,7 +425,7 @@ button:focus-visible,.ni:focus-visible{outline:2px solid var(--gz-jaune);outline
 #gz-notify-btn{border-color:#a67d3e!important;background:#3e311d!important;color:#fde047!important}
 
 </style>
-<script src="./youssef-relay.js?v=20261108-native-sync-final"></script></head>
+<script src="./youssef-relay.js?v=quota-20261110-1"></script></head>
 <body>
 
 <div id="fb-loading" style="position:fixed;inset:0;background:#0d0d1a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:900;gap:10px">
@@ -739,7 +740,7 @@ function addAuthToUrl(url){
     const u=new URL(url,location.href); u.searchParams.set('auth',fbIdToken); return u.toString();
   }catch(e){ return url+(url.includes('?')?'&':'?')+'auth='+encodeURIComponent(fbIdToken); }
 }
-function clearFirebaseSession(){fbIdToken='';fbRefreshToken='';fbTokenExpiresAt=0;fbRefreshPromise=null;}
+function clearFirebaseSession(){window.gzYOUSSEFUid=null;fbIdToken='';fbRefreshToken='';fbTokenExpiresAt=0;fbRefreshPromise=null;}
 
 function deepClone(v){
   if(v===undefined) return undefined;
@@ -832,72 +833,16 @@ function createRestRoot(tenantKey){
       if(fbForcePoll)setTimeout(fbForcePoll,40);
       return after;
     },
+    off:function(){if(fbEventSource)fbEventSource.close();fbEventSource=null;fbForcePoll=null;},
     on:function(event,success,error){
-      if(event!=='value') return;
-
-      let fullReadAt=0;
-      const poll=async function(){
-        if(fbPollBusy) return;
-        fbPollBusy=true;
-        try{
-          // Cache-buster important sur certains Chrome/Safari/WebView mobiles.
-          const sep=restUrl(rootPath).indexOf('?')>=0?'&':'?';
-          const full=!DB._ready||Date.now()-fullReadAt>12000;
-          let got;
-          if(full){fullReadAt=Date.now();try{got=await restFetchJson(restUrl(rootPath)+sep+'_gzts='+Date.now());}catch(e){if(!DB._ready)throw e;const active=await restFetchJson(restUrl(rootPath+'/active_by_poste')+'?_gzts='+Date.now());got={data:{...DB._cache,active_by_poste:active.data||{}}};}}
-          else{const active=await restFetchJson(restUrl(rootPath+'/active_by_poste')+'?_gzts='+Date.now());got={data:{...DB._cache,active_by_poste:active.data||{}}};}
-          fbLastSyncAt=Date.now();
-          if(typeof success==='function') success(makeSnapshot(got.data||{}));
-        }catch(e){
-          if(typeof error==='function') error(e);
-        }finally{fbPollBusy=false;}
-      };
-
-      const pollSoon=function(){
-        if(fbImmediateSyncTimer) clearTimeout(fbImmediateSyncTimer);
-        fbImmediateSyncTimer=setTimeout(function(){ poll(); },80);
-      };
-      fbForcePoll=poll;
-
-      // 1) Premier chargement immédiat.
-      poll();
-
-      // 2) Flux temps réel Firebase REST. Dès qu'un autre téléphone écrit,
-      // on relit immédiatement l'état complet pour éviter les états partiels.
-      try{
-        if(fbEventSource){ try{fbEventSource.close();}catch(e){} }
-        if(typeof EventSource!=='undefined'){
-          fbEventSource=new EventSource(addAuthToUrl(restUrl(rootPath)));
-          fbEventSource.addEventListener('put',pollSoon);
-          fbEventSource.addEventListener('patch',pollSoon);
-          fbEventSource.addEventListener('cancel',function(ev){
-            console.log('Firebase stream cancel',ev&&ev.data); pollSoon();
-          });
-          fbEventSource.addEventListener('auth_revoked',function(ev){
-            console.log('Firebase stream auth_revoked',ev&&ev.data);
-          });
-          fbEventSource.onerror=function(){
-            // Le polling ci-dessous reste actif même si Safari coupe EventSource.
-          };
-        }
-      }catch(e){ console.log('Flux temps réel indisponible, polling actif',e); }
-
-      // 3) Polling de secours rapide : fonctionne même si EventSource est
-      // bloqué par Safari, un WebView, un économiseur de batterie ou CORS.
-      if(fbPollTimer) clearInterval(fbPollTimer);
-      fbPollTimer=setInterval(poll,700);
-
-      // 4) Quand l'utilisateur revient sur l'application, forcer une lecture.
-      const force=function(){ setTimeout(poll,30); };
-      if(!window.__gzSyncHooksInstalled){
-        window.__gzSyncHooksInstalled=true;
-        window.addEventListener('focus',force);
-        window.addEventListener('online',force);
-        window.addEventListener('pageshow',force);
-        document.addEventListener('visibilitychange',function(){
-          if(document.visibilityState==='visible') force();
-        });
-      }
+      if(event!=='value')return;
+      if(fbEventSource)fbEventSource.close();
+      if(fbPollTimer)clearInterval(fbPollTimer);fbPollTimer=null;
+      fbEventSource=GZQuotaSync.manager({url:restUrl(rootPath),token:force=>force?refreshFirebaseIdToken():ensureFirebaseToken(),dayStart:()=>YOUSSEFRelay.dayStart(),
+        read:()=>YOUSSEFRelay.managerSnapshot(),
+        readChild:async path=>(await restFetchJson(restUrl(rootPath+'/'+path))).data,
+        next:value=>{fbLastSyncAt=Date.now();if(!value.sessions||value.sessions.dayStart!==YOUSSEFRelay.dayStart())value.sessions={recettes:0,count:0,date:new Date(YOUSSEFRelay.dayStart()).toDateString(),parPoste:{},sessionsParPoste:{},payStats:{},dayStart:YOUSSEFRelay.dayStart()};success(makeSnapshot(value||{}));},error});
+      fbForcePoll=fbEventSource.refresh;
     },
     transaction: YOUSSEFRelay.transaction
   };
@@ -3909,8 +3854,9 @@ const initAutoY=initApp;initApp=function(){DB._cache=YOUSSEFRelay.applyAuto(DB._
 <script src="./youssef-v12-ui.js?v=20261108-hms-banks"></script>
 <script src="./youssef-feedback.js?v=20261106-audio1?v=2.0"></script>
 <script src="./click-feedback.js?v=20261107-1"></script>
-</body>
+<script>const quotaVersion=document.getElementById('gz-build-version');if(quotaVersion)quotaVersion.textContent+=' · QUOTA Q1';</script></body>
 </html>
+
 
 
 

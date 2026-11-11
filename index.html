@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<script src="./firebase-quota-sync.js?v=quota-r1-20261111"></script>
+<script src="./firebase-quota-sync.js?v=cloudflare-read-1-20261111"></script>
 <script>
 const GZ_STORAGE_PREFIX='gamezone:abou-youssef:gerant:';
 function gzScopedStorage(raw){return {getItem:k=>raw.getItem(GZ_STORAGE_PREFIX+k),setItem:(k,v)=>raw.setItem(GZ_STORAGE_PREFIX+k,String(v)),removeItem:k=>raw.removeItem(GZ_STORAGE_PREFIX+k),clear:()=>{for(const k of Object.keys(raw))if(k.startsWith(GZ_STORAGE_PREFIX))raw.removeItem(k);}};}
@@ -3880,6 +3880,7 @@ const initAutoY=initApp;initApp=function(){DB._cache=YOUSSEFRelay.applyAuto(DB._
 <script src="./click-feedback.js?v=20261107-1"></script>
 <script>const quotaVersion=document.getElementById('gz-build-version');if(quotaVersion)quotaVersion.textContent+=' · QUOTA Q1';</script><script>const r1Version=document.getElementById('gz-build-version');if(r1Version)r1Version.textContent+=' · QUOTA Q1 · CORRECTIF TEMPS R1';</script></body>
 </html>
+
 
 
 
